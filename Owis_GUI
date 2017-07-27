@@ -27,7 +27,6 @@ plt.rc('font', **{'size': 14})
 
 q1 = queue.Queue()
 
-
 class LabelWithEntry(tk.Frame):
     def __init__(self, master, text, width_label=10, width_entry=20, *args, **kwargs):
         super().__init__(master, *args, **kwargs)
@@ -86,17 +85,17 @@ class ShowStatus(tk.Frame):
 
         self.position_label = Label(master, text='Current Absolute Position', font=20).grid(row=0, column=1)
 
-        self.load_file_x = Label(master, text=str(int(phym1.read_position(3))) + 'µm', fg='RoyalBlue3')
+        self.load_file_x = Label(master, text=str(phym1.read_position(3)) + 'µm', fg='RoyalBlue3')
         self.load_file_x.grid(row=1, column=1)
-        self.load_file_y = Label(master, text=str(int(phym1.read_position(4))) + 'µm', fg='DarkOrange1')
+        self.load_file_y = Label(master, text=str(phym1.read_position(4)) + 'µm', fg='DarkOrange1')
         self.load_file_y.grid(row=2, column=1)
-        self.load_file_z = Label(master, text=str(int(phym1.read_position(5))) + 'µm', fg='forest green')
+        self.load_file_z = Label(master, text=str(phym1.read_position(5)) + 'µm', fg='forest green')
         self.load_file_z.grid(row=3, column=1)
 
     def update_position(self):
-        self.load_file_x.config(text=str(int(phym1.read_position(3))) + 'µm')
-        self.load_file_y.config(text=str(int(phym1.read_position(4))) + 'µm')
-        self.load_file_z.config(text=str(int(phym1.read_position(5))) + 'µm')
+        self.load_file_x.config(text=str(phym1.read_position(3)) + 'µm')
+        self.load_file_y.config(text=str(phym1.read_position(4)) + 'µm')
+        self.load_file_z.config(text=str(phym1.read_position(5)) + 'µm')
 
 
 class MoveMotors(tk.Frame):
@@ -123,7 +122,7 @@ class MoveMotors(tk.Frame):
                 phym1.move_multiple_dist_abs([[3, int(self.e1.get())], [4, int(self.e2.get())], [5, int(self.e3.get())]])
                 q1.put('update position')
             except ValueError:
-                q1.put('ValueError')
+                q1.put('FillValues')
             except MotorOutOfRangeError:
                 q1.put('MotorOutOfRangeError')
 
@@ -157,7 +156,7 @@ class MoveMotors(tk.Frame):
                     if direction == '+':
                         phym1.move_multiple_dist_rel([[5, int(self.E3.get())]])
                     elif direction == '-':
-                         phym1.move_multiple_dist_rel([[5, -int(self.E3.get())]])
+                        phym1.move_multiple_dist_rel([[5, -int(self.E3.get())]])
                 q1.put('update position')
             except ValueError:
                 q1.put('ValueError')
@@ -268,13 +267,13 @@ class EmbeddedFigure(tk.Frame):
         super().__init__(master, *args, **kwargs)
         self.master = master
 
-        self.initial_pos_x = int(phym1.read_position(3))
-        self.initial_pos_y = int(phym1.read_position(4))
-        self.initial_pos_z = int(phym1.read_position(5))
+        self.initial_pos_x = int(self.read_gui_position(3))
+        self.initial_pos_y = int(self.read_gui_position(4))
+        self.initial_pos_z = int(self.read_gui_position(5))
 
-        self.plot_arr_x = np.array([int(phym1.read_position(3))])
-        self.plot_arr_y = np.array([int(phym1.read_position(4))])
-        self.plot_arr_z = np.array([int(phym1.read_position(5))])
+        self.plot_arr_x = np.array([int(self.read_gui_position(3))])
+        self.plot_arr_y = np.array([int(self.read_gui_position(4))])
+        self.plot_arr_z = np.array([int(self.read_gui_position(5))])
         self.plot_count_x = np.array([0])
         self.plot_count_y = np.array([0])
         self.plot_count_z = np.array([0])
@@ -291,19 +290,42 @@ class EmbeddedFigure(tk.Frame):
         self.canvas.show()
         self.canvas.get_tk_widget().grid(row=5, column=0)
 
-    # def read_gui_position(self, axis):
-    #     pos = int(phym1.send_command(str(axis) + '.1P20R'))
-    #     phym1.position_vec[axis - 1] = pos
-    #     pos_micrometers = pos * phym1.calc_step_len(axis)
-    #     return pos_micrometers
+        self.start_graph_button = Button(master, text='START GRAPH', command=self.start_graph, bg='lime green', fg='white', font=18)
+        self.start_graph_button.grid(row=6, column=5)
 
+        self.stop_timer_button = Button(master, text='STOP GRAPH', command=self.stop_update_figure_timer, bg='red', fg='white', font=18)
+        self.stop_timer_button.grid(row=6, column=0)
+
+        self.start_graph_button_clicked = False
+        self.stop_timer_button_clicked = True
+
+    def read_gui_position(self, axis):
+        last_known_position = (phym1.last_known_position[(axis-1)] * phym1.calc_step_len(axis))
+        return last_known_position
+
+    def start_graph(self):
+        if self.start_graph_button_clicked == True:
+            tk.messagebox.showerror('Error', 'Graph had already been started')
+        if self.start_graph_button_clicked == False:
+            q1.put('update graph')
+            self.start_graph_button_clicked = True
+            self.stop_timer_button_clicked = False
+
+    def stop_update_figure_timer(self):
+        if self.stop_timer_button_clicked == True:
+            tk.messagebox.showerror('Error', 'Graph has already been stopped')
+        if self.stop_timer_button_clicked == False:
+            self.update_figure_timer.cancel()
+            self.stop_timer_button_clicked = True
+            self.start_graph_button_clicked = False
 
     def update_figure(self):
-        # threading.Timer(1, self.update_figure).start()
+        self.update_figure_timer = threading.Timer(1, self.update_figure)
+        self.update_figure_timer.start()
         self.subplot.cla()
-        self.plot_arr_x = np.append(self.plot_arr_x, int(phym1.read_position(3)))
-        self.plot_arr_y = np.append(self.plot_arr_y, int(phym1.read_position(4)))
-        self.plot_arr_z = np.append(self.plot_arr_z, int(phym1.read_position(5)))
+        self.plot_arr_x = np.append(self.plot_arr_x, int(self.read_gui_position(3)))
+        self.plot_arr_y = np.append(self.plot_arr_y, int(self.read_gui_position(4)))
+        self.plot_arr_z = np.append(self.plot_arr_z, int(self.read_gui_position(5)))
         self.plot_count_x = np.append(self.plot_count_x, (self.plot_count_x[-1]) + 1)
         self.plot_count_y = np.append(self.plot_count_y, (self.plot_count_y[-1]) + 1)
         self.plot_count_z = np.append(self.plot_count_z, (self.plot_count_z[-1]) + 1)
@@ -327,7 +349,7 @@ class Application(tk.Frame):
         self.phym1 = phym1.init_xyz_xrayoptics()
 
         master.resizable(width=False, height=False)
-        master.geometry('{}x{}'.format(900, 550))
+        master.geometry('{}x{}'.format(925, 570))
 
         self.show_status = ShowStatus(self)
         self.show_status.grid(row=0, column=0)
@@ -354,11 +376,14 @@ class Application(tk.Frame):
             q_el = q1.get()
             if q_el == 'update position':
                 self.show_status.update_position()
+            if q_el == 'update graph':
                 self.embedded_figure.update_figure()
             if q_el == 'ValueError':
                 tk.messagebox.showerror('ValueError', 'Please input integers only')
             if q_el == 'MotorOutOfRangeError':
                 tk.messagebox.showerror('MotorOutOfRangeError', 'Position is outside boundaries')
+            if q_el == 'FillValues':
+                tk.messagebox.showerror('ValueError', 'Please fill all coordinates with integers')
 
     def create_menubar(self):
         self.menubar = tk.Menu(self, tearoff=0)
@@ -382,6 +407,7 @@ class Application(tk.Frame):
 
     def bind_global_commands(self):
         self.bind_all('<Control-q>', lambda event: self.quit_program())
+        self.bind_all('<Control-w>', lambda event: self.quit_program())
 
 root = tk.Tk()
 app = Application(master=root)
