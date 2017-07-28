@@ -1,22 +1,14 @@
 from tkinter import ttk
 from tkinter import *
 from tkinter import messagebox
-from tkinter import filedialog
 import tkinter as tk
 import matplotlib
 import matplotlib.pyplot as plt
 matplotlib.use('TkAgg')
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
-from matplotlib import gridspec
 import numpy as np
 import queue
-import os
-import sys
-import ctypes
-import serial
-import sched
-import time
 from OWISLINEARMOTOR import *
 phym1 = PhyMotionController('COM11')
 
@@ -50,31 +42,31 @@ class SettingsWindow(tk.Toplevel):
         self.master = master
 
         self.frequency_x = LabelWithEntry(self, text='Frequency X:', width_label=15, width_entry=5)
-        self.frequency_x.set(phym1.send_command('3.1P14R'))
+        self.frequency_x.set(phym1.send_command(str(x) + '.1P14R'))
         self.frequency_x.grid(row=0, column=0)
         self.frequency_y = LabelWithEntry(self, text='Frequency Y:', width_label=15, width_entry=5)
-        self.frequency_y.set(phym1.send_command('4.1P14R'))
+        self.frequency_y.set(phym1.send_command(str(y) + '.1P14R'))
         self.frequency_y.grid(row=1, column=0)
         self.frequency_z = LabelWithEntry(self, text='Frequency Z:', width_label=15, width_entry=5)
-        self.frequency_z.set(phym1.send_command('5.1P14R'))
+        self.frequency_z.set(phym1.send_command(str(z) + '.1P14R'))
         self.frequency_z.grid(row=2, column=0)
         self.rampfrequency_x = LabelWithEntry(self, text='Ramp Frequency X:', width_label=20, width_entry=5)
-        self.rampfrequency_x.set(phym1.send_command('3.1P15R'))
+        self.rampfrequency_x.set(phym1.send_command(str(x) + '.1P15R'))
         self.rampfrequency_x.grid(row=0, column=1)
         self.rampfrequency_y = LabelWithEntry(self, text='Ramp Frequency Y:', width_label=20, width_entry=5)
-        self.rampfrequency_y.set(phym1.send_command('4.1P15R'))
+        self.rampfrequency_y.set(phym1.send_command(str(y) + '.1P15R'))
         self.rampfrequency_y.grid(row=1, column=1)
         self.rampfrequency_z = LabelWithEntry(self, text='Ramp Frequency Z:', width_label=20, width_entry=5)
-        self.rampfrequency_z.set(phym1.send_command('5.1P15R'))
+        self.rampfrequency_z.set(phym1.send_command(str(z) + '.1P15R'))
         self.rampfrequency_z.grid(row=2, column=1)
 
         self.apply_button = Button(self, text='Apply', command=self.apply_parameters).grid(row=3, column=0, columnspan=2)
 
     def apply_parameters(self):
-        config_axis3 = {'axis': 3, 'frequency': int(self.frequency_x.get()), 'rampfrequency': int(self.rampfrequency_x.get())}
-        config_axis4 = {'axis': 4, 'frequency': int(self.frequency_y.get()), 'rampfrequency': int(self.rampfrequency_y.get())}
-        config_axis5 = {'axis': 5, 'frequency': int(self.frequency_z.get()), 'rampfrequency': int(self.rampfrequency_z.get())}
-        phym1.axes_config = [config_axis3, config_axis4, config_axis5]
+        config_axis1 = {'axis': 1, 'frequency': int(self.frequency_x.get()), 'rampfrequency': int(self.rampfrequency_x.get())}
+        config_axis2 = {'axis': 2, 'frequency': int(self.frequency_y.get()), 'rampfrequency': int(self.rampfrequency_y.get())}
+        config_axis3 = {'axis': 3, 'frequency': int(self.frequency_z.get()), 'rampfrequency': int(self.rampfrequency_z.get())}
+        phym1.axes_config = [config_axis1, config_axis2, config_axis3]
         self.destroy()
 
 
@@ -85,17 +77,17 @@ class ShowStatus(tk.Frame):
 
         self.position_label = Label(master, text='Current Absolute Position', font=20).grid(row=0, column=1)
 
-        self.load_file_x = Label(master, text=str(phym1.read_position(3)) + 'µm', fg='RoyalBlue3')
+        self.load_file_x = Label(master, text=str(phym1.read_position(x)) + 'µm', fg='RoyalBlue3')
         self.load_file_x.grid(row=1, column=1)
-        self.load_file_y = Label(master, text=str(phym1.read_position(4)) + 'µm', fg='DarkOrange1')
+        self.load_file_y = Label(master, text=str(phym1.read_position(y)) + 'µm', fg='DarkOrange1')
         self.load_file_y.grid(row=2, column=1)
-        self.load_file_z = Label(master, text=str(phym1.read_position(5)) + 'µm', fg='forest green')
+        self.load_file_z = Label(master, text=str(phym1.read_position(z)) + 'µm', fg='forest green')
         self.load_file_z.grid(row=3, column=1)
 
     def update_position(self):
-        self.load_file_x.config(text=str(phym1.read_position(3)) + 'µm')
-        self.load_file_y.config(text=str(phym1.read_position(4)) + 'µm')
-        self.load_file_z.config(text=str(phym1.read_position(5)) + 'µm')
+        self.load_file_x.config(text=str(phym1.read_position(x)) + 'µm')
+        self.load_file_y.config(text=str(phym1.read_position(y)) + 'µm')
+        self.load_file_z.config(text=str(phym1.read_position(z)) + 'µm')
 
 
 class MoveMotors(tk.Frame):
@@ -114,12 +106,12 @@ class MoveMotors(tk.Frame):
             self.E3.delete(0, END)
 
         def move_to_zero():
-            phym1.move_multiple_dist_abs([[3, 0], [4, 0], [5, 0]])
+            phym1.move_multiple_dist_abs([[x, 0], [y, 0], [z, 0]])
             q1.put('update position')
 
         def show_entry_fields():
             try:
-                phym1.move_multiple_dist_abs([[3, int(self.e1.get())], [4, int(self.e2.get())], [5, int(self.e3.get())]])
+                phym1.move_multiple_dist_abs([[x, int(self.e1.get())], [y, int(self.e2.get())], [z, int(self.e3.get())]])
                 q1.put('update position')
             except ValueError:
                 q1.put('FillValues')
@@ -128,12 +120,12 @@ class MoveMotors(tk.Frame):
 
         def move_absolute(axis):
             try:
-                if axis == 3:
-                    phym1.move_multiple_dist_abs([[3, int(self.e1.get())]])
-                elif axis == 4:
-                    phym1.move_multiple_dist_abs([[4, int(self.e2.get())]])
-                elif axis == 5:
-                    phym1.move_multiple_dist_abs([[5, int(self.e3.get())]])
+                if axis == x:
+                    phym1.move_multiple_dist_abs([[x, int(self.e1.get())]])
+                elif axis == y:
+                    phym1.move_multiple_dist_abs([[y, int(self.e2.get())]])
+                elif axis == z:
+                    phym1.move_multiple_dist_abs([[z, int(self.e3.get())]])
                 q1.put('update position')
             except ValueError:
                 q1.put('ValueError')
@@ -142,21 +134,21 @@ class MoveMotors(tk.Frame):
 
         def move_relative(axis, direction):
             try:
-                if axis == 3:
+                if axis == x:
                     if direction == '+':
-                        phym1.move_multiple_dist_rel([[3, int(self.E1.get())]])
+                        phym1.move_multiple_dist_rel([[x, int(self.E1.get())]])
                     elif direction == '-':
-                        phym1.move_multiple_dist_rel([[3, -int(self.E1.get())]])
-                elif axis == 4:
+                        phym1.move_multiple_dist_rel([[x, -int(self.E1.get())]])
+                elif axis == y:
                     if direction == '+':
-                        phym1.move_multiple_dist_rel([[4, int(self.E2.get())]])
+                        phym1.move_multiple_dist_rel([[y, int(self.E2.get())]])
                     elif direction == '-':
-                        phym1.move_multiple_dist_rel([[4, -int(self.E2.get())]])
-                elif axis == 5:
+                        phym1.move_multiple_dist_rel([[y, -int(self.E2.get())]])
+                elif axis == z:
                     if direction == '+':
-                        phym1.move_multiple_dist_rel([[5, int(self.E3.get())]])
+                        phym1.move_multiple_dist_rel([[z, int(self.E3.get())]])
                     elif direction == '-':
-                        phym1.move_multiple_dist_rel([[5, -int(self.E3.get())]])
+                        phym1.move_multiple_dist_rel([[z, -int(self.E3.get())]])
                 q1.put('update position')
             except ValueError:
                 q1.put('ValueError')
@@ -184,24 +176,24 @@ class MoveMotors(tk.Frame):
             t.start()
 
         def clear_entry(axis):
-            if axis == 3:
+            if axis == x:
                 if self.e1.get() == 'Enter X position':
                     self.e1.delete(0, END)
-            if axis == 4:
+            if axis == y:
                 if self.e2.get() == 'Enter Y position':
                     self.e2.delete(0, END)
-            if axis == 5:
+            if axis == z:
                 if self.e3.get() == 'Enter Z position':
                     self.e3.delete(0, END)
 
         def clear_step(axis):
-            if axis == 3:
+            if axis == x:
                 if self.E1.get() == 'Enter X step':
                     self.E1.delete(0, END)
-            if axis == 4:
+            if axis == y:
                 if self.E2.get() == 'Enter Y step':
                     self.E2.delete(0, END)
-            if axis == 5:
+            if axis == z:
                 if self.E3.get() == 'Enter Z step':
                     self.E3.delete(0, END)
 
@@ -214,46 +206,46 @@ class MoveMotors(tk.Frame):
         self.relative_label = Label(master, text='Relative Movement', font=20).grid(row=0, column=4, columnspan=3)
 
         self.x_label = Label(master, text='X axis:', fg='RoyalBlue3').grid(row=1, column=0)
-        self.decrease_x_button = Button(master, text='-', command=lambda: move_relative_thread(3, '-'), fg='RoyalBlue3').grid(row=1, column=4, ipadx=4)
+        self.decrease_x_button = Button(master, text='-', command=lambda: move_relative_thread(x, '-'), fg='RoyalBlue3').grid(row=1, column=4, ipadx=4)
         self.e1 = Entry(master, fg='RoyalBlue3')
         self.e1.insert(0,'Enter X position')
-        self.e1.bind('<Button-1>', lambda event: clear_entry(3))
-        self.e1.bind("<Return>", lambda event: move_absolute_thread(3))
+        self.e1.bind('<Button-1>', lambda event: clear_entry(x))
+        self.e1.bind("<Return>", lambda event: move_absolute_thread(x))
         self.e1.grid(row=1, column=2, padx=(30,0), sticky=E)
         self.E1 = Entry(master, fg='RoyalBlue3')
         self.E1.insert(0,'Enter X step')
-        self.E1.bind('<Button-1>', lambda event:clear_step(3))
+        self.E1.bind('<Button-1>', lambda event:clear_step(x))
         self.E1.grid(row=1, column=5)
-        self.increase_x_button = Button(master, text='+', command=lambda: move_relative_thread(3, '+'), fg='RoyalBlue3').grid(row=1, column=6, ipadx=3)
-        self.ok_button_x = Button(master, text='Move to X position', command=lambda: move_absolute_thread(3), fg='RoyalBlue3').grid(row=1, column=3, ipadx=19.4, padx=(0,50), sticky=W)
+        self.increase_x_button = Button(master, text='+', command=lambda: move_relative_thread(x, '+'), fg='RoyalBlue3').grid(row=1, column=6, ipadx=3)
+        self.ok_button_x = Button(master, text='Move to X position', command=lambda: move_absolute_thread(x), fg='RoyalBlue3').grid(row=1, column=3, ipadx=19.4, padx=(0,50), sticky=W)
 
         self.y_label = Label(master, text='Y axis:', fg='DarkOrange1').grid(row=2, column=0)
-        self.decrease_y_button = Button(master, text='-', command=lambda: move_relative_thread(4, '-'), fg='DarkOrange1').grid(row=2, column=4, ipadx=4)
+        self.decrease_y_button = Button(master, text='-', command=lambda: move_relative_thread(y, '-'), fg='DarkOrange1').grid(row=2, column=4, ipadx=4)
         self.e2 = Entry(master, fg='DarkOrange1')
         self.e2.insert(0, 'Enter Y position')
-        self.e2.bind('<Button-1>', lambda event: clear_entry(4))
-        self.e2.bind("<Return>", lambda event: move_absolute_thread(4))
+        self.e2.bind('<Button-1>', lambda event: clear_entry(y))
+        self.e2.bind("<Return>", lambda event: move_absolute_thread(y))
         self.e2.grid(row=2, column=2, padx=(30,0), sticky=E)
         self.E2 = Entry(master, fg='DarkOrange1')
         self.E2.insert(0, 'Enter Y step')
-        self.E2.bind('<Button-1>', lambda event: clear_step(4))
+        self.E2.bind('<Button-1>', lambda event: clear_step(y))
         self.E2.grid(row=2, column=5)
-        self.increase_y_button = Button(master, text='+', command=lambda: move_relative_thread(4, '+'), fg='DarkOrange1').grid(row=2, column=6, ipadx=3)
-        self.ok_button_y = Button(master, text='Move to Y position', command=lambda: move_absolute_thread(4), fg='DarkOrange1').grid(row=2, column=3, ipadx=19.4, padx=(0,50),sticky=W)
+        self.increase_y_button = Button(master, text='+', command=lambda: move_relative_thread(y, '+'), fg='DarkOrange1').grid(row=2, column=6, ipadx=3)
+        self.ok_button_y = Button(master, text='Move to Y position', command=lambda: move_absolute_thread(y), fg='DarkOrange1').grid(row=2, column=3, ipadx=19.4, padx=(0,50),sticky=W)
 
         self.z_label = Label(master, text='Z axis:', fg='forest green').grid(row=3, column=0)
-        self.decrease_z_button = Button(master, text='-', command=lambda: move_relative_thread(5, '-'), fg='forest green').grid(row=3, column=4, ipadx=4)
+        self.decrease_z_button = Button(master, text='-', command=lambda: move_relative_thread(z, '-'), fg='forest green').grid(row=3, column=4, ipadx=4)
         self.e3 = Entry(master, fg='forest green')
         self.e3.insert(0, 'Enter Z position')
-        self.e3.bind('<Button-1>', lambda event: clear_entry(5))
-        self.e3.bind("<Return>", lambda event: move_absolute_thread(5))
+        self.e3.bind('<Button-1>', lambda event: clear_entry(z))
+        self.e3.bind("<Return>", lambda event: move_absolute_thread(z))
         self.e3.grid(row=3, column=2, padx=(30,0), sticky=E)
         self.E3 = Entry(master, fg='forest green')
         self.E3.insert(0, 'Enter Z step')
-        self.E3.bind('<Button-1>', lambda event: clear_step(5))
+        self.E3.bind('<Button-1>', lambda event: clear_step(z))
         self.E3.grid(row=3, column=5)
-        self.increase_z_button = Button(master, text='+', command=lambda: move_relative_thread(5, '+'), fg='forest green').grid(row=3, column=6, ipadx=3)
-        self.ok_button_z = Button(master, text='Move to Z position', command=lambda: move_absolute_thread(5), fg='forest green').grid(row=3, column=3, ipadx=19.4, padx=(0,50), sticky=W)
+        self.increase_z_button = Button(master, text='+', command=lambda: move_relative_thread(z, '+'), fg='forest green').grid(row=3, column=6, ipadx=3)
+        self.ok_button_z = Button(master, text='Move to Z position', command=lambda: move_absolute_thread(z), fg='forest green').grid(row=3, column=3, ipadx=19.4, padx=(0,50), sticky=W)
 
         self.cancel_button = Button(master, text='Clear steps', command=del_step_fields).grid(row=4, column=5, ipadx=29)
         self.move_zero_pos_button = Button(master, text='Move to zero position', command=move_to_zero_thread).grid(row=4, column=0)
@@ -267,13 +259,13 @@ class EmbeddedFigure(tk.Frame):
         super().__init__(master, *args, **kwargs)
         self.master = master
 
-        self.initial_pos_x = int(self.read_gui_position(3))
-        self.initial_pos_y = int(self.read_gui_position(4))
-        self.initial_pos_z = int(self.read_gui_position(5))
+        self.initial_pos_x = int(self.read_gui_position(x))
+        self.initial_pos_y = int(self.read_gui_position(y))
+        self.initial_pos_z = int(self.read_gui_position(z))
 
-        self.plot_arr_x = np.array([int(self.read_gui_position(3))])
-        self.plot_arr_y = np.array([int(self.read_gui_position(4))])
-        self.plot_arr_z = np.array([int(self.read_gui_position(5))])
+        self.plot_arr_x = np.array([int(self.read_gui_position(x))])
+        self.plot_arr_y = np.array([int(self.read_gui_position(y))])
+        self.plot_arr_z = np.array([int(self.read_gui_position(z))])
         self.plot_count_x = np.array([0])
         self.plot_count_y = np.array([0])
         self.plot_count_z = np.array([0])
@@ -323,9 +315,9 @@ class EmbeddedFigure(tk.Frame):
         self.update_figure_timer = threading.Timer(1, self.update_figure)
         self.update_figure_timer.start()
         self.subplot.cla()
-        self.plot_arr_x = np.append(self.plot_arr_x, int(self.read_gui_position(3)))
-        self.plot_arr_y = np.append(self.plot_arr_y, int(self.read_gui_position(4)))
-        self.plot_arr_z = np.append(self.plot_arr_z, int(self.read_gui_position(5)))
+        self.plot_arr_x = np.append(self.plot_arr_x, int(self.read_gui_position(x)))
+        self.plot_arr_y = np.append(self.plot_arr_y, int(self.read_gui_position(y)))
+        self.plot_arr_z = np.append(self.plot_arr_z, int(self.read_gui_position(z)))
         self.plot_count_x = np.append(self.plot_count_x, (self.plot_count_x[-1]) + 1)
         self.plot_count_y = np.append(self.plot_count_y, (self.plot_count_y[-1]) + 1)
         self.plot_count_z = np.append(self.plot_count_z, (self.plot_count_z[-1]) + 1)
@@ -396,7 +388,7 @@ class Application(tk.Frame):
         self.filemenu.add_cascade(label='Step Length', command=self.step_length_popup)
 
     def step_length_popup(self):
-        tk.messagebox.showinfo(title='Calculate Step Length', message='Step length X: '+ str(phym1.calc_step_len(3)) + ' µm' + '\n' + 'Step length Y: '+ str(phym1.calc_step_len(4)) + ' µm' + '\n' + 'Step length Z: '+ str(phym1.calc_step_len(5)) + ' µm')
+        tk.messagebox.showinfo(title='Calculate Step Length', message='Step length X: '+ str(phym1.calc_step_len(x)) + ' µm' + '\n' + 'Step length Y: '+ str(phym1.calc_step_len(y)) + ' µm' + '\n' + 'Step length Z: '+ str(phym1.calc_step_len(z)) + ' µm')
 
     def open_settings_window(self):
         if self.settings_window is None or not self.settings_window.winfo_exists():
